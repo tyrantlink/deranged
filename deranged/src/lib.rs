@@ -71,6 +71,8 @@ pub use deranged_macros::int;
 pub use deranged_macros::opt_int;
 #[cfg(feature = "powerfmt")]
 use powerfmt::smart_display;
+#[cfg(feature = "rkyv")]
+use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
 
 use crate::unsafe_wrapper::Unsafe;
 
@@ -216,6 +218,7 @@ macro_rules! impl_ranged {
         )]
         #[repr(transparent)]
         #[derive(Clone, Copy, Eq, Ord, Hash)]
+        #[cfg_attr(feature = "rkyv", derive(Archive, RkyvDeserialize, RkyvSerialize))]
         pub struct $type<const MIN: $internal, const MAX: $internal>(
             Unsafe<$internal>,
         );
@@ -1520,7 +1523,7 @@ macro_rules! impl_ranged {
             fn serialize<S: serde_core::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error>
             {
                 const { assert!(MIN <= MAX); }
-                self.get().serialize(serializer)
+                serde_core::Serialize::serialize(&self.get(), serializer)
             }
         }
 
@@ -1533,7 +1536,7 @@ macro_rules! impl_ranged {
             fn serialize<S: serde_core::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error>
             {
                 const { assert!(MIN <= MAX); }
-                self.get().serialize(serializer)
+                serde_core::Serialize::serialize(&self.get(), serializer)
             }
         }
 
@@ -1548,7 +1551,7 @@ macro_rules! impl_ranged {
                 -> Result<Self, D::Error>
             {
                 const { assert!(MIN <= MAX); }
-                let internal = <$internal>::deserialize(deserializer)?;
+                let internal = <$internal as serde_core::Deserialize>::deserialize(deserializer)?;
                 Self::new(internal).ok_or_else(||
                     <D::Error as serde_core::de::Error>::invalid_value(
                         serde_core::de::Unexpected::Other("integer"),

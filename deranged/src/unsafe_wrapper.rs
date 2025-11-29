@@ -1,8 +1,12 @@
 //! Declaration and implementation of `Unsafe`, which ensures all unsafe operations are correctly
 //! placed in unsafe blocks.
 
+#[cfg(feature = "rkyv")]
+use rkyv::{Archive, Deserialize as RkyvDeserialize, Serialize as RkyvSerialize};
+
 /// A value that is safe to use, but is unsafe to construct or mutate.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "rkyv", derive(Archive, RkyvDeserialize, RkyvSerialize))]
 pub(crate) struct Unsafe<T>(T);
 
 impl<T: core::fmt::Debug> core::fmt::Debug for Unsafe<T> {
